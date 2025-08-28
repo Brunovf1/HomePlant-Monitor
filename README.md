@@ -76,53 +76,60 @@ READ_INTERVAL=3600 # Intervalo entre leituras dos sensores (segundos)
 docker compose up -d
 ```
 
----
+# IoT Sensor Data Pipeline
 
-## 📡 Fluxo de Dados
+Este projeto implementa um pipeline para coleta, armazenamento e visualização de dados de sensores usando **MQTT**, **TimescaleDB** e **Grafana**.
 
-```mermaid
-graph TD
-    A[Sensor ESP8266] -- Leitura a cada 1h --> B[Servidor Local]
-    A -- Botão: leitura imediata --> B
-    B -- Umidade < LOW_HUMID --> C[Display: Solo Seco + LED ON]
-    B -- Umidade > LOW_HUMID --> D[Display: OK + LED OFF]
+## Arquitetura
+
+- **MQTT (Eclipse Mosquitto)** → Recebe dados dos sensores (ex: temperatura, umidade).
+- **TimescaleDB** → Armazena os dados em formato de séries temporais (baseado no PostgreSQL).
+- **Grafana** → Conecta-se ao banco de dados para visualização e dashboards.
+
+## Estrutura dos Serviços
+
+- `mosquitto`: Servidor MQTT para ingestão de dados.
+- `timescaledb`: Banco de dados PostgreSQL com extensão TimescaleDB.
+- `grafana`: Interface de visualização e análise.
+
+## Como usar
+
+### 1. Subir os serviços
+```bash
+docker-compose up -d
 ```
 
----
+### 2. Inicializar banco de dados
+Dentro do container do TimescaleDB, rode o script de schema:
+```bash
+docker exec -i timescaledb psql -U postgres -d sensors < schema.sql
+```
 
-## 🛠️ Tecnologias Utilizadas
+### 3. Inserir dados de teste
+```bash
+docker exec -i timescaledb psql -U postgres -d sensors < inserts.sql
+```
 
-- **ESP8266** (Plataforma dos sensores)
-- **Docker + Docker Compose** (Servidor local)
-- **REST API** para comunicação entre dispositivos
-- **MQTT** (opcional, para melhorar a eficiência da rede)
-- **C/C++ (Arduino)** nos sensores
-- **Python / Node.js** no servidor (definir conforme implementação)
+### 4. Consultar exemplo de agregação
+```bash
+docker exec -i timescaledb psql -U postgres -d sensors < queries.sql
+```
 
----
+### 5. Acessar Grafana
+Abra [http://localhost:3000](http://localhost:3000)  
+Usuário padrão: `admin`  
+Senha: `admin` (ou definida via secret no docker-compose)
 
-## 📅 Roadmap
+## Estrutura dos Arquivos
 
-- [x] Leitura periódica dos sensores
-- [x] Notificação por botão físico
-- [x] Displays com alertas visuais
-- [x] Servidor local com Docker
-- [ ] Painel Web para visualização de dados
-- [ ] Histórico de leituras
-- [ ] Integração com assistentes de voz (ex: Alexa)
+- `docker-compose.yml` → Orquestração dos serviços
+- `schema.sql` → Criação de tabelas e hypertables
+- `inserts.sql` → Inserts de teste
+- `queries.sql` → Exemplos de queries de agregação
+- `grafana_dashboard.json` → Dashboard pronto para importar
 
----
+## Próximos Passos
 
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Sinta-se à vontade para abrir issues, sugerir melhorias ou enviar pull requests.
-
----
-
-## 📄 Licença
-
-Este projeto está licenciado sob a [MIT License](LICENSE).
-
----
-
-## 🌱 Feito com carinho para plantas felizes.
+- Criar serviço de consumidor MQTT para inserir no TimescaleDB
+- Automatizar migrations do banco
+- Integrar previsão ML/IA com dados históricos
